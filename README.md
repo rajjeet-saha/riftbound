@@ -213,7 +213,7 @@ riftbound/
 └── README.md
 ```
 
-> `src/**/*.ts` contains earlier TypeScript drafts of the same classes. They are kept for reference but are **not** part of the build — the shipping game is the JavaScript implementation listed above.
+> `src/**/*.ts` contains earlier TypeScript drafts of the same classes. They are kept for reference but are **not** installed or part of the build — the shipping game is the JavaScript implementation listed above. This keeps `npm install` to a single runtime dependency (three.js); the drafts reference Colyseus, which is not installed.
 
 ---
 
