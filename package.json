@@ -1,0 +1,23 @@
+{
+  "name": "riftbound",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "colyseus": "^0.18.9",
+    "colyseus.js": "^0.16.22",
+    "three": "^0.165.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.165.0",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.1",
+    "vite-plugin-glsl": "^1.2.0",
+    "vite-tsconfig-paths": "^6.1.1"
+  }
+}

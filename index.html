@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>RIFTBOUND — Dimensional Arena Fighter</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #05070f;
+      --panel: rgba(12, 18, 34, 0.82);
+      --panel-solid: #0d1424;
+      --line: rgba(120, 180, 255, 0.18);
+      --cyan: #22d3ee;
+      --cyan-soft: #67e8f9;
+      --pink: #e879f9;
+      --amber: #fbbf24;
+      --red: #fb7185;
+      --green: #34d399;
+      --text: #e6edf7;
+      --muted: #8b9cb8;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      touch-action: none;
+    }
+
+    #canvas-container { position: fixed; inset: 0; }
+    #canvas-container canvas { display: block; width: 100%; height: 100%; }
+
+    /* Overlay never blocks clicks; interactive children re-enable them. */
+    #ui-overlay { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+
+    /* ---------------------------------------------------------------- menu */
+
+    #main-menu {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 26px;
+      padding: 32px 20px;
+      background:
+        radial-gradient(circle at 50% 32%, rgba(34, 211, 238, 0.14), transparent 55%),
+        radial-gradient(circle at 76% 74%, rgba(232, 121, 249, 0.12), transparent 55%),
+        linear-gradient(180deg, rgba(5, 7, 15, 0.9), rgba(5, 7, 15, 0.96));
+      backdrop-filter: blur(6px);
+      pointer-events: auto;
+      transition: opacity 0.35s ease, visibility 0.35s;
+    }
+    #main-menu.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .title-stack { text-align: center; animation: floaty 7s ease-in-out infinite; }
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0) rotateX(0deg); }
+      50% { transform: translateY(-9px) rotateX(2deg); }
+    }
+
+    .game-title {
+      font-size: clamp(40px, 9vw, 84px);
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #ffffff 10%, var(--cyan-soft) 48%, #1b7f96 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 0 26px rgba(34, 211, 238, 0.55));
+    }
+
+    .game-subtitle {
+      margin-top: 10px;
+      font-size: clamp(11px, 1.6vw, 14px);
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .menu-actions { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+
+    .menu-btn {
+      position: relative;
+      overflow: hidden;
+      min-width: 240px;
+      padding: 17px 34px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #04121a;
+      background: linear-gradient(135deg, var(--cyan-soft), var(--cyan));
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 14px;
+      cursor: pointer;
+      pointer-events: auto;
+      box-shadow: 0 12px 30px rgba(34, 211, 238, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+    }
+    .menu-btn.secondary {
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(232, 121, 249, 0.28), rgba(34, 211, 238, 0.18));
+      border-color: rgba(232, 121, 249, 0.55);
+      box-shadow: 0 12px 30px rgba(232, 121, 249, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    }
+    .menu-btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -60%;
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+      transform: skewX(-18deg);
+      transition: left 0.55s ease;
+    }
+    .menu-btn:hover { transform: translateY(-3px) scale(1.015); filter: brightness(1.06); }
+    .menu-btn:hover::after { left: 130%; }
+    .menu-btn:active { transform: translateY(1px) scale(0.99); }
+    .menu-btn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+    .controls-card {
+      width: min(760px, 94vw);
+      margin-top: 6px;
+      padding: 18px 22px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 14px 26px;
+    }
+    .controls-col h4 {
+      font-size: 10px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 8px;
+    }
+    .controls-col ul { list-style: none; display: grid; gap: 5px; }
+    .controls-col li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    .controls-col li b { color: var(--text); font-weight: 600; }
+    kbd {
+      display: inline-block;
+      padding: 2px 7px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan-soft);
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      border-bottom-width: 2px;
+      border-radius: 6px;
+    }
+
+    /* ----------------------------------------------------------------- HUD */
+
+    #hud {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      transition: opacity 0.28s ease, visibility 0.28s;
+    }
+    #hud.hidden { opacity: 0; visibility: hidden; }
+
+    .hud-top {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px clamp(12px, 3vw, 30px);
+    }
+
+    .fighter {
+      width: min(34vw, 320px);
+      padding: 11px 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+    .fighter.p2 { text-align: right; }
+
+    .fighter-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .fighter.p1 .tag { color: var(--cyan); }
+    .fighter.p2 .tag { color: var(--pink); }
+    .fighter-head .score {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0;
+      color: var(--text);
+    }
+
+    .bar {
+      position: relative;
+      height: 13px;
+      margin-bottom: 7px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.07);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .bar .fill {
+      height: 100%;
+      width: 100%;
+      border-radius: 6px;
+      transition: width 0.16s linear;
+    }
+    .bar.health .fill { background: linear-gradient(90deg, #f43f5e, #fb7185 60%, #fda4af); }
+    .bar.energy .fill { background: linear-gradient(90deg, #0ea5e9, var(--cyan-soft)); }
+    .bar .num {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: #ffffff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.7);
+    }
+
+    .timer-card {
+      padding: 9px 22px;
+      text-align: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      backdrop-filter: blur(10px);
+      min-width: 130px;
+    }
+    #match-timer {
+      display: block;
+      font-size: 27px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      transition: color 0.2s ease;
+    }
+    #match-timer.urgent { color: var(--red); animation: pulse 1s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+    .dimension-line {
+      margin-top: 4px;
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    #dimension-value { color: var(--cyan); font-weight: 800; }
+    #dimension-value.rift { color: var(--pink); }
+
+    /* ------------------------------------------------------- quality panel */
+
+    #quality-toggle {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      color: var(--cyan-soft);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      cursor: pointer;
+      pointer-events: auto;
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      z-index: 30;
+    }
+    #quality-toggle:hover { transform: rotate(35deg); border-color: var(--cyan); }
+
+    #quality-panel {
+      position: absolute;
+      right: 16px;
+      bottom: 68px;
+      width: 210px;
+      padding: 14px;
+      background: var(--panel-solid);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+      pointer-events: auto;
+      z-index: 30;
+      display: none;
+    }
+    #quality-panel.open { display: block; animation: pop 0.18s ease; }
+    @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    #quality-panel h4 {
+      font-size: 10px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .quality-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 9px 11px;
+      margin-bottom: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid transparent;
+      border-radius: 9px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.16s ease;
+    }
+    .quality-chip:hover { color: var(--text); background: rgba(34, 211, 238, 0.08); }
+    .quality-chip.active {
+      color: var(--cyan-soft);
+      border-color: rgba(34, 211, 238, 0.55);
+      background: rgba(34, 211, 238, 0.12);
+    }
+    .quality-chip .hint { font-size: 10px; color: var(--muted); font-weight: 500; }
+
+    /* --------------------------------------------------------- pause/result */
+
+    .modal {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(3, 6, 12, 0.76);
+      backdrop-filter: blur(10px);
+      pointer-events: auto;
+      z-index: 40;
+    }
+    .modal.open { display: grid; }
+
+    .modal-card {
+      width: min(420px, 94vw);
+      padding: 30px 28px;
+      text-align: center;
+      background: linear-gradient(180deg, #111a2e, #0b1120);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6);
+      animation: pop 0.22s ease;
+    }
+    .modal-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      background: linear-gradient(180deg, #fff, var(--cyan-soft));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .modal-text { font-size: 13px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
+
+    .score-rows {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 22px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+    }
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .score-row b { color: var(--cyan); font-size: 16px; }
+
+    .modal-actions { display: flex; gap: 10px; justify-content: center; }
+    .modal-btn {
+      padding: 12px 22px;
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #04121a;
+      background: linear-gradient(135deg, var(--cyan-soft), var(--cyan));
+      border: none;
+      border-radius: 11px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+    .modal-btn.ghost {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--line);
+    }
+    .modal-btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .modal-btn:active { transform: translateY(0); }
+
+    /* -------------------------------------------------------------- touch */
+
+    #touch-controls { display: none; }
+    @media (hover: none) and (pointer: coarse) {
+      #touch-controls {
+        display: block;
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 190px;
+        pointer-events: none;
+      }
+      .touch-row {
+        position: absolute;
+        right: 18px;
+        bottom: 20px;
+        display: flex;
+        gap: 10px;
+        pointer-events: none;
+      }
+      .touch-btn {
+        width: 74px;
+        height: 74px;
+        border-radius: 50%;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: #04121a;
+        background: radial-gradient(circle at 35% 30%, var(--cyan-soft), var(--cyan));
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        pointer-events: auto;
+        user-select: none;
+      }
+      .touch-btn.defend { background: radial-gradient(circle at 35% 30%, #93c5fd, #3b82f6); color: #f8fafc; }
+      .touch-btn.dimension { background: radial-gradient(circle at 35% 30%, #f5d0fe, var(--pink)); }
+      .touch-btn:active { transform: scale(0.94); }
+
+      .touch-move {
+        position: absolute;
+        left: 18px;
+        bottom: 20px;
+        display: grid;
+        grid-template-columns: repeat(3, 54px);
+        grid-template-rows: repeat(3, 54px);
+        gap: 4px;
+        pointer-events: none;
+      }
+      .touch-move button {
+        pointer-events: auto;
+        border-radius: 12px;
+        background: rgba(13, 20, 36, 0.85);
+        border: 1px solid var(--line);
+        color: var(--cyan-soft);
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .touch-move button:active { background: rgba(34, 211, 238, 0.25); }
+      .touch-move .up { grid-area: 1 / 2; }
+      .touch-move .left { grid-area: 2 / 1; }
+      .touch-move .jump { grid-area: 2 / 2; }
+      .touch-move .right { grid-area: 2 / 3; }
+      .touch-move .down { grid-area: 3 / 2; }
+    }
+
+    @media (max-width: 620px) {
+      .fighter { width: 40vw; padding: 8px 10px; }
+      #match-timer { font-size: 20px; }
+      .timer-card { min-width: 96px; padding: 7px 12px; }
+      .controls-card { display: none; }
+      .menu-btn { min-width: 200px; padding: 15px 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div id="ui-overlay">
+    <!-- ===================== MAIN MENU ===================== -->
+    <section id="main-menu">
+      <div class="title-stack">
+        <h1 class="game-title">Riftbound</h1>
+        <p class="game-subtitle">Dimensional Arena Fighter</p>
+      </div>
+
+      <div class="menu-actions">
+        <button class="menu-btn" id="btn-play" type="button">Play vs AI</button>
+        <button class="menu-btn secondary" id="btn-two-player" type="button">2 Player Local</button>
+      </div>
+
+      <div class="controls-card">
+        <div class="controls-col">
+          <h4>Player 1</h4>
+          <ul>
+            <li><span>Move</span><b><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></b></li>
+            <li><span>Jump / Sprint</span><b><kbd>Space</kbd><kbd>Shift</kbd></b></li>
+            <li><span>Attack / Defend</span><b><kbd>LMB</kbd><kbd>RMB</kbd></b></li>
+            <li><span>Dimension shift</span><b><kbd>F</kbd></b></li>
+          </ul>
+        </div>
+        <div class="controls-col">
+          <h4>Player 2</h4>
+          <ul>
+            <li><span>Move</span><b><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></b></li>
+            <li><span>Jump / Sprint</span><b><kbd>Enter</kbd><kbd>R</kbd></b></li>
+            <li><span>Attack / Defend</span><b><kbd>Num 0</kbd><kbd>Num 1</kbd></b></li>
+            <li><span>Dimension shift</span><b><kbd>G</kbd></b></li>
+          </ul>
+        </div>
+        <div class="controls-col">
+          <h4>Arena</h4>
+          <ul>
+            <li><span>Match length</span><b>3:00</b></li>
+            <li><span>Win condition</span><b>Most takedowns</b></li>
+            <li><span>Pause</span><b><kbd>Esc</kbd></b></li>
+            <li><span>Ability cost</span><b>40 energy</b></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== HUD ===================== -->
+    <section id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="fighter p1">
+          <div class="fighter-head">
+            <span class="tag">Player 1</span>
+            <span class="score" id="p1-score">0</span>
+          </div>
+          <div class="bar health">
+            <div class="fill" id="p1-health-fill"></div>
+            <span class="num" id="p1-health">100</span>
+          </div>
+          <div class="bar energy">
+            <div class="fill" id="p1-energy-fill"></div>
+            <span class="num" id="p1-energy">100</span>
+          </div>
+        </div>
+
+        <div class="timer-card">
+          <span id="match-timer">3:00</span>
+          <div class="dimension-line">Dimension <b id="dimension-value">Material</b></div>
+        </div>
+
+        <div class="fighter p2">
+          <div class="fighter-head">
+            <span class="score" id="p2-score">0</span>
+            <span class="tag" id="p2-name">AI</span>
+          </div>
+          <div class="bar health">
+            <div class="fill" id="p2-health-fill"></div>
+            <span class="num" id="p2-health">100</span>
+          </div>
+          <div class="bar energy">
+            <div class="fill" id="p2-energy-fill"></div>
+            <span class="num" id="p2-energy">100</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== QUALITY (hidden by default) ===================== -->
+    <button id="quality-toggle" type="button" title="Graphics quality" aria-label="Graphics quality">⚙</button>
+    <div id="quality-panel" role="dialog" aria-label="Graphics quality">
+      <h4>Graphics · <span id="quality-current">Balanced</span></h4>
+      <button class="quality-chip" type="button" data-quality="performance">
+        <span>Performance</span><span class="hint">fastest</span>
+      </button>
+      <button class="quality-chip active" type="button" data-quality="balanced">
+        <span>Balanced</span><span class="hint">default</span>
+      </button>
+      <button class="quality-chip" type="button" data-quality="maximum">
+        <span>Maximum</span><span class="hint">sharp</span>
+      </button>
+    </div>
+
+    <!-- ===================== PAUSE ===================== -->
+    <div id="pause-menu" class="modal" role="dialog" aria-label="Paused">
+      <div class="modal-card">
+        <div class="modal-title">Paused</div>
+        <p class="modal-text">The rift is holding still. Jump back in when ready.</p>
+        <div class="modal-actions">
+          <button class="modal-btn" id="resume-btn" type="button">Resume</button>
+          <button class="modal-btn ghost" id="menu-btn" type="button">Main Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== RESULTS ===================== -->
+    <div id="results-screen" class="modal" role="dialog" aria-label="Match results">
+      <div class="modal-card">
+        <div class="modal-title" id="results-title">Match Over</div>
+        <p class="modal-text" id="results-message">Awaiting results…</p>
+        <div class="score-rows">
+          <div class="score-row"><span>Player 1 takedowns</span><b id="score-p1">0</b></div>
+          <div class="score-row"><span id="p2-name">Opponent</span><b id="score-p2">0</b></div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn" id="play-again" type="button">Play Again</button>
+          <button class="modal-btn ghost" id="results-menu-btn" type="button">Main Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TOUCH ===================== -->
+    <div id="touch-controls">
+      <div class="touch-move">
+        <button class="up" data-hold="moveForward" type="button">▲</button>
+        <button class="left" data-hold="moveLeft" type="button">◀</button>
+        <button class="jump" data-hold="jump" type="button">⤒</button>
+        <button class="right" data-hold="moveRight" type="button">▶</button>
+        <button class="down" data-hold="moveBackward" type="button">▼</button>
+      </div>
+      <div class="touch-row">
+        <button class="touch-btn defend" data-hold="defend" type="button">DEFEND</button>
+        <button class="touch-btn dimension" data-tap="dimension" type="button">SHIFT</button>
+        <button class="touch-btn" data-hold="attack" type="button">ATTACK</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { GameScene } from './src/scenes/GameScene.js'
+
+    const game = new GameScene()
+
+    const qs = (id) => document.getElementById(id)
+
+    /* ---------- menu ---------- */
+    qs('btn-play')?.addEventListener('click', () => game.startMatch('ai'))
+    qs('btn-two-player')?.addEventListener('click', () => game.startMatch('local'))
+
+    /* ---------- pause ---------- */
+    qs('resume-btn')?.addEventListener('click', () => game.togglePause())
+    qs('menu-btn')?.addEventListener('click', () => game.returnToMenu())
+
+    /* ---------- results ---------- */
+    qs('play-again')?.addEventListener('click', () => game.rematch())
+    qs('results-menu-btn')?.addEventListener('click', () => game.returnToMenu())
+
+    /* ---------- graphics quality (behind the gear button) ---------- */
+    const qualityPanel = qs('quality-panel')
+    qs('quality-toggle')?.addEventListener('click', (event) => {
+      event.stopPropagation()
+      qualityPanel?.classList.toggle('open')
+    })
+    qualityPanel?.querySelectorAll('[data-quality]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        game.applyQuality(chip.dataset.quality)
+        qualityPanel.classList.remove('open')
+      })
+    })
+    document.addEventListener('click', (event) => {
+      if (!qualityPanel?.classList.contains('open')) return
+      if (event.target.closest('#quality-panel') || event.target.closest('#quality-toggle')) return
+      qualityPanel.classList.remove('open')
+    })
+
+    /* ---------- touch controls ---------- */
+    document.querySelectorAll('[data-hold]').forEach((button) => {
+      const key = button.dataset.hold
+      const on = (event) => {
+        event.preventDefault()
+        if (game.matchPhase !== 'match') return
+        game.player1Inputs[key] = true
+      }
+      const off = (event) => {
+        event.preventDefault()
+        game.player1Inputs[key] = false
+      }
+      button.addEventListener('pointerdown', on)
+      button.addEventListener('pointerup', off)
+      button.addEventListener('pointercancel', off)
+      button.addEventListener('pointerleave', off)
+    })
+
+    document.querySelectorAll('[data-tap]').forEach((button) => {
+      button.addEventListener('pointerdown', (event) => {
+        event.preventDefault()
+        if (game.matchPhase !== 'match' || !game.localPlayer) return
+        game.localPlayer.attackTimer = 0
+        game.player1Inputs.dimensionShift = true
+        setTimeout(() => { game.player1Inputs.dimensionShift = false }, 120)
+      })
+    })
+
+    /* ---------- keep buttons from stealing keyboard focus ---------- */
+    document.querySelectorAll('button').forEach((button) => {
+      button.addEventListener('mouseup', () => button.blur())
+    })
+
+    /* ---------- first interaction unlocks audio/graphics niceties ---------- */
+    window.addEventListener('pointerdown', () => document.body.classList.add('interacted'), { once: true })
+  </script>
+</body>
+</html>

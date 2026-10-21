@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-label="RIFTBOUND — Dimensional Arena Fighter">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#05070f"/>
+      <stop offset="55%" stop-color="#071726"/>
+      <stop offset="100%" stop-color="#150a24"/>
+    </linearGradient>
+    <radialGradient id="glowCyan" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowPink" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e879f9" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#e879f9" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#9beaf7"/>
+      <stop offset="100%" stop-color="#1b7f96"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#2a4f74" stroke-width="1" opacity="0.55"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="420" fill="url(#bg)"/>
+  <rect width="1200" height="420" fill="url(#grid)" opacity="0.5"/>
+  <ellipse cx="250" cy="120" rx="360" ry="260" fill="url(#glowCyan)"/>
+  <ellipse cx="980" cy="330" rx="340" ry="240" fill="url(#glowPink)"/>
+
+  <!-- orbiting rings -->
+  <g fill="none" stroke="#22d3ee" stroke-opacity="0.35">
+    <ellipse cx="600" cy="300" rx="330" ry="86" stroke-width="2"/>
+    <ellipse cx="600" cy="300" rx="240" ry="60" stroke-width="1.5" stroke-opacity="0.25"/>
+  </g>
+  <g fill="none" stroke="#e879f9" stroke-opacity="0.35">
+    <ellipse cx="600" cy="300" rx="285" ry="72" stroke-width="1.5" stroke-dasharray="14 10"/>
+  </g>
+
+  <!-- fighters -->
+  <g>
+    <circle cx="430" cy="300" r="30" fill="#22d3ee" opacity="0.25"/>
+    <rect x="416" y="268" width="28" height="52" rx="14" fill="#14c8e0"/>
+    <circle cx="430" cy="262" r="13" fill="#0b1420"/>
+    <rect x="423" y="258" width="15" height="5" rx="2.5" fill="#8ef7ff"/>
+  </g>
+  <g>
+    <circle cx="770" cy="300" r="30" fill="#e879f9" opacity="0.25"/>
+    <rect x="756" y="268" width="28" height="52" rx="14" fill="#d946ef"/>
+    <circle cx="770" cy="262" r="13" fill="#0b1420"/>
+    <rect x="763" y="258" width="15" height="5" rx="2.5" fill="#ffa8f5"/>
+  </g>
+
+  <text x="600" y="150" text-anchor="middle" fill="url(#title)"
+        font-family="Segoe UI, Inter, Helvetica, Arial, sans-serif"
+        font-size="96" font-weight="800" letter-spacing="14">RIFTBOUND</text>
+  <text x="600" y="196" text-anchor="middle" fill="#8b9cb8"
+        font-family="Segoe UI, Inter, Helvetica, Arial, sans-serif"
+        font-size="19" letter-spacing="11">DIMENSIONAL ARENA FIGHTER</text>
+  <text x="600" y="392" text-anchor="middle" fill="#5f7592"
+        font-family="Segoe UI, Inter, Helvetica, Arial, sans-serif"
+        font-size="14" letter-spacing="4">THREE.JS · VITE · 60 FPS · 3-MINUTE MATCHES</text>
+</svg>
